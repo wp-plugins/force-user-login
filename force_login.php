@@ -2,8 +2,8 @@
 /*
 	Plugin Name: Force User Login
 	Plugin URI: http://URI_Of_Page_Describing_Plugin_and_Updates
-	Description: A really small plugin that forces a user to login before being able to view any blog content. It then redirects them to the relative root (/). You can change where the login redirects by changing line 32 of the plugin file. 
-	Version: 1.0
+	Description: A really small plugin that forces a user to login before being able to view any blog content.
+	Version: 1.2
 	Author: The Integer Group Development Team
 	Author URI: http://www.integer.com
 
@@ -25,14 +25,43 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */	
-	add_action( 'get_header', 'force_login', 1 );
+	
+	add_action( 'template_redirect', 'force_login' );
 	
 	function force_login()
 	{
-		$redirect_to = '/'; // Change this line to change to where logging in redirects the user.
+		$redirect_to = $_SERVER['REQUEST_URI']; // Change this line to change to where logging in redirects the user, i.e. '/', '/wp-admin', etc.
 		
 		if ( ! is_user_logged_in() )
-	  		header( 'Location: /wp-login.php?redirect_to=' . $redirect_to );
+		{
+			if ( is_feed() )
+			{
+				$credentials = array();
+				$credentials['user_login'] = $_SERVER['PHP_AUTH_USER'];
+				$credentials['user_password'] = $_SERVER['PHP_AUTH_PW'];
+
+				$user = wp_signon( $credentials );
+
+				if ( is_wp_error( $user ) )
+				{
+					header( 'WWW-Authenticate: Basic realm="' . $_SERVER['SERVER_NAME'] . '"' );
+					header( 'HTTP/1.0 401 Unauthorized' );
+					die();
+					
+				} // if
+
+			} // if
+			
+			else
+			{
+
+		  		header( 'Location: /wp-login.php?redirect_to=' . $redirect_to );
+				die();
+
+			} // else
+
+	  	} // if
 
 	} // force_login
+
 ?>
